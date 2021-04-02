@@ -25,7 +25,7 @@ from Scientific.IO.NetCDF import *
 from os import *
 from string import *
 from tempfile import gettempdir, mktemp
-import re, os, pwd, string, sys, types
+import re, os, string, sys, types
 import Numeric
 
 
@@ -1152,10 +1152,15 @@ class xMOLDYN(Frame):
         a job owner, the date of starting
         and a progress in percents are shown """
 
+        try:
+            import win32api
+            owner = win32api.GetUserName()
+        except ImportError:
+            from pwd import getpwuid
+            owner = getpwuid(getuid())[0]
         tempdir = gettempdir()
         list = listdir(tempdir)
         list2 = []
-        owner = pwd.getpwuid(getuid())[0]
         for file in list:
             try:
                 a = split(file,'.')

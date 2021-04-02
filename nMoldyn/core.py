@@ -18,7 +18,6 @@ from time import asctime,localtime,time
 from string import *
 from tempfile import mktemp
 from os import system,getuid
-from pwd import getpwuid
 from shutil import copyfile
 import operator
 

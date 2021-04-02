@@ -3,14 +3,15 @@ analysis of Molecular Dynamics trajectories. This program is
 copyrighted but free to use for anyone under the CeCILL license,
 see the file LICENSE for details.
 
-nMoldyn should work with all major variants of Unix. There is little
-system-specific code in nMoldyn itself, so porting nMoldyn to non-Unix
-systems should be possible. However, we cannot provide any support for
-this.
+nMoldyn should work with all major variants of Unix, including Linux
+and MacOSX. nMoldyn also works under Windows, but we are unable to
+provide binary installers because we do not have Windows machines for
+development. There is little system-specific code in nMoldyn itself,
+so porting nMoldyn to other systems should be straightforward.
+However, we cannot provide any support for this.
 
 If you have any questions about nMoldyn that are not answered on the
 Web page mentioned above, please contact the authors.
-
 
 
 Gerald Kneller

@@ -1,3 +1,11 @@
+2.2.3 -> 2.2.4
+==============
+
+Bug fixes:
+
+- Works under Windows using the standard Python for Windows (before it
+  worked only under Cygwin)
+
 2.2.2 -> 2.2.3
 ==============
 

@@ -11,9 +11,8 @@ from Scientific.IO.PDB import PDBFile
 from Scientific.IO.TextFile import TextFile
 from string import *
 from time import asctime,localtime,time
-from pwd import getpwuid
+import os
 from os import *
-from tempfile import mktemp, gettempdir
 import re, sys
 
 
@@ -795,11 +794,23 @@ def ghostBusters(atoms):
 def logfileInit(modName):
     """ create a file with information about currently running calculations
     (progress, start date, etc.) """
-    t1       = asctime(localtime(time()))+'\n0\n'
-    owner    = getpwuid(getuid())[0]
-    pid      = getpid()
-    filename = join([mktemp(), owner, str(pid), modName, 'moldyn'], '.')
-    file     = TextFile(filename, 'w')
+    try:
+        import win32api
+        owner = win32api.GetUserName()
+    except ImportError:
+        from pwd import getpwuid
+        owner = getpwuid(getuid())[0]
+    t1 = asctime(localtime(time()))+'\n0\n'
+    pid = os.getpid()
+    suffix = join(['', owner, str(pid), modName, 'moldyn'], '.')
+    try:
+        from tempfile import mkstemp
+        handle, filename = mkstemp(suffix, text=True)
+        file = os.fdopen(handle, 'w')
+    except ImportError:
+        from tempfile import mktemp
+        filename = mktemp(suffix)
+        file     = TextFile(filename, 'w')
     file.write(t1)
     file.flush()
     return file, filename
@@ -873,9 +884,15 @@ def getProgress():
     a job owner, the date of starting
     and a progress in percents are shown """
 
+    try:
+        import win32api
+        owner = win32api.GetUserName()
+    except ImportError:
+        from pwd import getpwuid
+        owner = getpwuid(getuid())[0]
+    from tempfile import gettempdir
     list = listdir(gettempdir())
     list2 = []
-    owner = getpwuid(getuid())[0]
     for file in list:
             try:
                 a = split(file,'.')
