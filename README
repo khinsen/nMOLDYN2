@@ -1,0 +1,52 @@
+This is version 2.2 of nMoldyn, an interactive program for the
+analysis of Molecular Dynamics trajectories. This program is
+copyrighted but free to use for anyone under the CeCILL license,
+see the file LICENSE for details.
+
+nMoldyn should work with all major variants of Unix. There is little
+system-specific code in nMoldyn itself, so porting nMoldyn to non-Unix
+systems should be possible. However, we cannot provide any support for
+this.
+
+If you have any questions about nMoldyn that are not answered on the
+Web page mentioned above, please contact the authors.
+
+
+
+Gerald Kneller
+Centre de Biophysique Moleculaire (CNRS)
+Rue Charles Sadron
+45071 Orleans Cedex 2
+France
+
+E-Mail: kneller@cnrs-orleans.fr
+
+
+
+Installation
+============
+
+nMoldyn requires the Python interpreter (version 1.6 or higher)
+with the Tk interface installed, and the Molecular Modeling Toolkit
+(MMTK), version 2.2 or higher. Make sure that these components work
+properly before installing nMoldyn.
+
+Then type
+
+    python setup.py install
+
+On most systems this will require root permissions, as by default
+the files will be installed in the same directory as the Python
+interpreter. Other directories can be specified, type
+
+    python setup.py --help install
+
+for explanations. Once installation is finished, type
+
+    xMoldyn
+
+to run the interactive program or
+
+    pMoldyn
+
+to run a batch-mode calculation.

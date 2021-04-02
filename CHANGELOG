@@ -1,0 +1,23 @@
+2.2.2 -> 2.2.3
+==============
+
+Bug fixes:
+
+- Compatibility with MMTK 2.5
+
+2.0 -> 2.0.1
+============
+
+Bug fixes:
+
+- The time information (first step/last step/skip) set in the 
+  graphical user interface was not taken into account in the
+  calculations.
+
+- The graphical user interface (xMoldyn) did not work with
+  Python versions before 2.0.
+
+Improvements:
+
+- The scattering function plots (View-Display) show the
+  quantity and unit on the x-axis (time/frequency/q-length).

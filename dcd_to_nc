@@ -1,0 +1,187 @@
+#!python
+
+# Conversion of a DCD trajectory (CHARMM/XPlor) to MMTK's trajectory format.
+#
+# Usage: dcd_to_nc pdb_file dcd_file nc_file
+#
+
+from MMTK import *
+from MMTK.Proteins import Protein
+from MMTK.PDB import PDBConfiguration
+from MMTK.Trajectory import Trajectory, TrajectoryOutput
+from MMTK.DCD import DCDReader
+import getopt, os, string, sys
+import Numeric
+
+usage = """Usage: dcd_to_nc [options] pdb_file dcd_file nc_file
+
+pdb_file and dcd_file must describe the same system. nc_file is the
+name of the netCDF trajectory that is created.
+
+Options:
+
+  --box=size
+     specifies a periodic system of a given size. The size can be a
+     single number (cubic box) or three comma-separated values
+     (orthorhombic box); in both cases the dimenions are in Angstrom.
+
+  --xst=filename
+     specifies a periodic system with non-constant box size. The
+     box size is read from a file in NAMD's xst format. Note that
+     the box size must have been written out for the same simulation
+     steps as the configurations. The converter can only verify if
+     the number of steps is the same.
+
+  --block-size=number
+     specifies the block structure of the netCDF trajectory. The
+     default value of 1 optimizes the trajectory for step-by-step access
+     to conformations. Larger values favour atom-by-atom access to
+     one-particle trajectories for all times, which is required for the
+     calculation of dynamic quantities. The highest sensible value is
+     the number of steps in the trajectory.
+"""
+
+# Parse options
+
+try:
+    options, file_args = getopt.getopt(sys.argv[1:], '',
+                                       ['box=', 'xst=', 'block-size='])
+except getopt.GetoptError:
+    sys.stderr.write(usage)
+    raise SystemExit
+
+if len(file_args) != 3:
+    sys.stderr.write(usage)
+    raise SystemExit
+
+box = None
+xst_file = None
+block_size = 1
+for option, value in options:
+    if option == '--box':
+        sizes = map(float, string.split(value, ','))
+        if len(sizes) != 1 and len(sizes) != 3:
+            sys.stderr.write(usage)
+            raise SystemExit
+        box = Numeric.array(sizes)*Units.Ang
+        if len(box) == 1:
+            box = Numeric.resize(box, (3,))
+    if option == '--xst':
+        xst_file = value
+        box = Numeric.zeros((3,), Numeric.Float)
+    if option == '--block-size':
+        block_size = int(value)
+        if block_size < 1:
+            sys.stderr.write("Block size must be positive.")
+            raise SystemExit
+
+# Check file arguments
+
+pdb_file, dcd_file, nc_file = file_args
+if not os.path.exists(pdb_file):
+    sys.stderr.write('File %s not found\n' % pdb_file)
+    raise SystemExit
+if not os.path.exists(dcd_file):
+    sys.stderr.write('File %s not found\n' % dcd_file)
+    raise SystemExit
+if xst_file is not None and not os.path.exists(xst_file):
+    sys.stderr.write('File %s not found\n' % xst_file)
+    raise SystemExit
+if os.path.exists(nc_file):
+    sys.stderr.write('File %s already exists. ' % nc_file)
+    while 1:
+        answer = raw_input('Overwrite? [y/n] ')
+        if answer == 'n':
+            raise SystemExit
+        if answer == 'y':
+            break
+
+# Create the universe.
+if box is None:
+    universe = InfiniteUniverse()
+else:
+    universe = OrthorhombicPeriodicUniverse(box)
+
+# Create all objects from the PDB file. The PDB file *must* match the
+# the DCD file (same atom order), and you *must* create all objects
+# defined in the PDB file, otherwise interpretation of the DCD file
+# is not possible.
+conf = PDBConfiguration(pdb_file)
+universe.addObject(conf.createAll())
+
+# Create the trajectory object for output.
+t = Trajectory(universe, nc_file, "w",
+               "Converted from %s" % os.path.basename(dcd_file),
+               block_size = block_size)
+
+# Create a DCD reader that reads all configurations.
+dcd_reader = DCDReader(universe, dcd_file = dcd_file,
+                       actions = [TrajectoryOutput(t, "all", 0, None, 1)])
+# Run the reader...
+dcd_reader()
+nsteps = len(t)
+# ... and close the output trajectory.
+t.close()
+
+if xst_file is None:
+    raise SystemExit
+
+
+# Add box size information from xst file (NAMD)
+
+from Scientific.IO.NetCDF import NetCDFFile
+
+nc = NetCDFFile(nc_file, 'r+')
+conf = nc.variables['configuration']
+box = nc.variables['box_size']
+
+if block_size == 1:
+
+    def fix_conf(n, xyz, center):
+        box[n, :] = xyz.astype(box.typecode())
+        conf[n, :, :] = conf[n, :, :] - \
+                        center[Numeric.NewAxis, :].astype(conf.typecode())
+
+else:
+
+    def fix_conf(n, xyz, center):
+        major = n / block_size
+        minor = n % block_size
+        box[major, :, minor] = xyz.astype(box.typecode())
+        conf[major, :, :, minor] = conf[major, :, :, minor] - \
+                        center[Numeric.NewAxis, :].astype(conf.typecode())
+
+xst = open(xst_file)
+n = 0
+while 1:
+    line = xst.readline()
+    if not line:
+        break
+    if line[0] == '#':
+        continue
+    data = string.split(line)
+    if int(data[0]) == 0:
+        continue
+    data = map(float, data[1:])
+    if len(data) < 12:
+        sys.stderr.write("Insufficient data in xst file.\n")
+        break
+    xyz = Numeric.array([data[0], data[4], data[8]])*Units.Ang
+    center = Numeric.array(data[9:12])*Units.Ang
+    test = abs(data[1]) + abs(data[2]) + abs(data[3]) + abs(data[5]) + \
+           abs(data[6]) + abs(data[7])
+    if test > 0.:
+        sys.stderr.write("Simulation box not orthorhombic.\n")
+        break
+    if n >= nsteps:
+        sys.stderr.write("More steps in xst file than in trajectory.\n")
+        break
+    fix_conf(n, xyz, center)
+    n = n + 1
+
+if n != nsteps:
+    sys.stderr.write("Fewer steps in xst file than in trajectory.\n")
+    sys.stderr.write("Only the first %d steps have been modified.\n" % n)
+
+nc.close()
+xst.close()

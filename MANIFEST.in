@@ -1,0 +1,2 @@
+include README LICENSE LICENCE MANIFEST.in CHANGELOG
+include xMoldyn pMoldyn dcd_to_nc nc_to_dcd dlpoly_to_nc

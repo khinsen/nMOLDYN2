@@ -1,0 +1,61 @@
+#!python
+
+# Conversion of an MMTK trajectory to DCD format (CHARMM/XPlor).
+# A PDB file with the same atom order is created at the same time,
+# because otherwise it would be impossible to interpret the data
+# in the DCD file.
+#
+
+from MMTK import *
+from MMTK.Trajectory import Trajectory
+from MMTK.DCD import writeDCDPDB
+import getopt, os, sys
+
+usage = "Usage: nc_to_dcd nc_file [pdb_file dcd_file]"
+
+# Check arguments
+
+try:
+    options, file_args = getopt.getopt(sys.argv[1:], '', ['xst='])
+except getopt.GetoptError:
+    sys.stderr.write(usage)
+    raise SystemExit
+
+if len(file_args) != 1 and len(file_args) != 3:
+    sys.stderr.write(usage)
+    raise SystemExit
+
+nc_file = file_args[0]
+if not os.path.exists(nc_file):
+    sys.stderr.write('File %s not found\n' % nc_file)
+    raise SystemExit
+
+if len(file_args) == 1:
+    basename = os.path.splitext(nc_file)[0]
+    pdb_file = basename + '.pdb'
+    dcd_file = basename + '.dcd'
+else:
+    pdb_file = file_args[1]
+    dcd_file = file_args[2]
+
+# Convert trajectory
+trajectory = Trajectory(None, nc_file)
+universe = trajectory.universe
+try:
+    dt = trajectory.time[0:2]
+    dt = dt[1]-dt[0]
+except:
+    dt = 1.
+
+writeDCDPDB(trajectory.configuration, dcd_file, pdb_file, dt)
+
+# Generate xst file
+if options and options[0][0] == '--xst':
+    xst_file = open(options[0][1], 'w')
+    xst_file.write('#$LABELS step a_x a_y a_z b_x b_y b_z c_x c_y c_z o_x o_y o_z\n')
+    for i in range(len(trajectory)):
+        x, y, z = trajectory[i]['box_size']/Units.Ang
+        xst_file.write('%d %lf 0 0 0 %lf 0 0 0 %lf 0 0 0\n'
+                       % (i+1, x, y, z))
+
+trajectory.close()
