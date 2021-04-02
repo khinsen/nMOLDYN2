@@ -68,8 +68,10 @@ if optlist:
             if data.symbols: symbols = data.symbols
             else: symbols = (0,0,0,0,0)
             if data.filter_window: setFilter = data.filter_window
-            if data.differentiation: diffScheme = data.differentiation
-            else: diffScheme = 'fast'
+            if data.differentiation:
+                diffScheme = data.differentiation            
+            else:
+                diffScheme = 'fast'
             if data.ft_window is None: alpha = 10.
             else: alpha = 100./data.ft_window
             print " Input file processed in : %.1f sec." % (time()-start_time)
@@ -102,6 +104,7 @@ if optlist:
                                   normVect=normVect,
                                   weightList=weights,timeInfo=timeInfo)
         sample = max(1, len(DOS[0])/data.frequency_points)
+
         dos_scaled = []
         dos_scaled.append(array(DOS[0])[::sample]/uF)
         dos_scaled.append(array(DOS[1])[::sample]/(uL*uL))
@@ -287,10 +290,12 @@ if optlist:
         SAVACF = SpectraOfAngularVACF(traj,normVect=normVect,
                        diffScheme=diffScheme,groups=groups[0],
                        timeInfo=timeInfo,refGroup=refGroup[0])
+
         sample = max(1, len(SAVACF[0])/data.frequency_points)
         scaled = []
         scaled.append(array(SAVACF[0])[::sample]/uF)
         scaled.append(array(SAVACF[1])[::sample])
+        print scaled
         saveText(data=transpose(array(scaled)),filename=output,title=title)
     elif optlist.has_key('--rcf'):
         try:

@@ -17,7 +17,7 @@ from Scientific.Threading.TaskManager import TaskManager
 from time import asctime,localtime,time
 from string import *
 from tempfile import mktemp
-from os import system,getuid
+from os import system
 from shutil import copyfile
 import operator
 
@@ -84,8 +84,10 @@ def CoherentScatteringFunction(traj,qVect,ncDataFN,
 
     if atoms is None: atoms = traj.universe
     mask = atoms.booleanMask().array
+
     if bcoh is None:
         bcoh = BcohList(traj.universe,atoms)
+    print timeInfo
     tim  = timePrepare(traj,timeInfo)
     if nsteps is None:
         nsteps = len(tim)
@@ -232,8 +234,9 @@ def CoherentScatteringAR(trajectory, sf_filename, memory_filename,
                                   array([model.sigma, model.variance])))
         average = N.add.reduce(N.add.reduce(rho))/N.multiply.reduce(rho.shape)
         if sf_filename is not None:
-            fcoh = model.correlation(nsteps).real.values \
-                   + (average*N.conjugate(average)).real
+            # Bug fix
+#            fcoh = model.correlation(nsteps).real.values + (average*N.conjugate(average)).real
+            fcoh = model.correlation(nsteps).values.real + (average*N.conjugate(average)).real
             SF[j,:] = fcoh
             Qlength_SF[j] = qvect[0][j]
             model_r1[j, :] = parameters.real
@@ -247,10 +250,12 @@ def CoherentScatteringAR(trajectory, sf_filename, memory_filename,
             model_i3[j, :] = parameters.imag
             dsf_file.flush()
         if memory_filename is not None:
-            if precision is not None:
-                from ARMP import MPAutoRegressiveModel
-                model = MPAutoRegressiveModel(model, precision)
-            mem = model.memoryFunction(order+order/2).real.values
+#            if precision is not None:
+#                from ARMP import MPAutoRegressiveModel
+#                model = MPAutoRegressiveModel(model, precision)
+            # Bug fix
+#            mem = model.memoryFunction(order+order/2).real.values
+            mem = model.memoryFunction(order+order/2).values.real
             SFMEM[j,:] = mem
             Qlength_MEM[j] = qvect[0][j]
             model_r2[j, :] = parameters.real
@@ -330,6 +335,7 @@ def IncoherentScatteringFunction(traj,qVect,ncDataFN,
     file, filename = logfileInit('isf')
 
     if atoms is None: atoms = traj.universe
+    print bincoh
     if bincoh is None: bincoh = BincohList(traj.universe,atoms)
     tim    = timePrepare(traj,timeInfo)
     if nsteps is None:
@@ -529,8 +535,9 @@ def IncoherentScatteringAR(trajectory, sf_filename, memory_filename,
                 rho_av_sq = (rho_av*N.conjugate(rho_av)).real
                 average = N.add.reduce(rho_av_sq)/rho.shape[1]
                 if sf_filename is not None:
-                    cf = cf + weights[atom]*\
-                         (model.correlation(nsteps).real.values + average)
+                    # Bug fix
+#                    cf = cf + weights[atom]*(model.correlation(nsteps).real.values + average)
+                    cf = cf + weights[atom]*(model.correlation(nsteps).values.real + average)
                     SF[j,:] = cf
                     sf_file.flush()
                 if dsf_filename is not None:
@@ -545,10 +552,12 @@ def IncoherentScatteringAR(trajectory, sf_filename, memory_filename,
                                   array([tot_model.sigma,
                                          tot_model.variance])))
         if memory_filename is not None:
-            if precision is not None:
-                from ARMP import MPAutoRegressiveModel
-                tot_model = MPAutoRegressiveModel(tot_model, precision)
-            mem = tot_model.memoryFunction(order+order/2).real.values
+#            if precision is not None:
+#                from ARMP import MPAutoRegressiveModel
+#                tot_model = MPAutoRegressiveModel(tot_model, precision)
+            # Bug fix
+#            mem = tot_model.memoryFunction(order+order/2).real.values
+            mem = tot_model.memoryFunction(order+order/2).values.real
             SFMEM[j,:] = mem
             Qlength_MEM[j] = qvect[0][j]
             model_r[j, :] = parameters.real
@@ -722,7 +731,8 @@ def AngularVelocityAutocorrelationFunction(traj,groups,refGroup,normVect=None,
     avacf = zeros(len(tim),Float)
 
     ngr = 0
-    for key in groups.keys(): ngr = ngr + len(groups[key])
+    for key in groups.keys():
+        ngr = ngr + len(groups[key])
 
     print 'Group names: ',groups.keys()
     print 'Total number of groups is: ',ngr
@@ -747,6 +757,7 @@ def AngularVelocityAutocorrelationFunction(traj,groups,refGroup,normVect=None,
                 res = add.reduce(AutoCorrelationFunction(angvel), -1)/3.
             else:
                 res = AutoCorrelationFunction(dot(angvel,normVect))
+
             avacf = avacf+res/res[0]
             i = logfileUpdate(file,i,normFact)
 
@@ -833,10 +844,13 @@ def AngularTrajectory(traj,newTrajFN,groups,refGroup,timeInfo=None):
     nc.createDimension('start',1)
     xyz_atom = nc.createVariable('configuration',Float32,\
                                 ('start','atom_number','xyz'))
+
     xyz_cms = nc.createVariable('cms',Float32,\
                                 ('step_number','group_number','xyz'))
+
     quatern = nc.createVariable('quaternion',Float32,\
                          ('step_number','group_number','quaternion_length'))
+
     time_new = nc.createVariable('time',Float32,('step_number',))
     fit = nc.createVariable('fit',Float32,('step_number',
                                                    'group_number'))
@@ -1050,6 +1064,8 @@ def DigitalFilter(traj,newname,groups=None,timeInfo=None,filterSet=None):
     F = zeros(len(frequencies),'d')
     if filterSet is None: # by default we take only 5%
         filterSet = (0,frequencies[len(frequencies)/20])
+
+
     fmin = len(frequencies)-len(compress(greater_equal(frequencies,\
                                 filterSet[0]),frequencies))
     if filterSet[1] is None:
@@ -1425,7 +1441,9 @@ def AutoRegressiveAnalysis(memory, correlation, spectrum, msd,
                                           AveragedAutoRegressiveModel
     if weightList is None:
         weightList = OnesList(traj.universe,atoms.atomList())
-    t = traj.time[timeInfo[0]:2*timeInfo[2]:timeInfo[2]]
+    # Bug fix.
+#    t = traj.time[timeInfo[0]:2*timeInfo[2]:timeInfo[2]]
+    t = traj.time[timeInfo[0]:timeInfo[1]:timeInfo[2]]
     dt = t[1]-t[0]
     file, filename = logfileInit('ar-vel')
 
@@ -1455,7 +1473,9 @@ def AutoRegressiveAnalysisXYZ(memory, correlation, spectrum, msd,
                                           AveragedAutoRegressiveModel
     if weightList is None:
         weightList = OnesList(traj.universe,atoms.atomList())
-    t = traj.time[timeInfo[0]:2*timeInfo[2]:timeInfo[2]]
+    # Bug fix.
+#    t = traj.time[timeInfo[0]:2*timeInfo[2]:timeInfo[2]]
+    t = traj.time[timeInfo[0]:timeInfo[1]:timeInfo[2]]
     dt = t[1]-t[0]
     file, filename = logfileInit('ar-xyz')
 
@@ -1486,6 +1506,7 @@ def evaluate_model(model, nsteps, nfreq, memory, correlation, spectrum, msd,
         if i < len(c):
             correlation = InterpolatingFunction((correlation.axes[0][:i],),
                                                 c[:i])
+
     if spectrum:
         omega_max = 1.1*pi/model.delta_t
         omega = omega_max*arange(nfreq)/float(nfreq)
@@ -1495,9 +1516,9 @@ def evaluate_model(model, nsteps, nfreq, memory, correlation, spectrum, msd,
         msd = msd_eval(model, nsteps)
     if memory:
         friction = model.frictionConstant()
-        if precision is not None:
-            from ARMP import MPAutoRegressiveModel
-            model = MPAutoRegressiveModel(model, precision)
+#        if precision is not None:
+#            from ARMP import MPAutoRegressiveModel
+#            model = MPAutoRegressiveModel(model, precision)
         try:
             memory = model.memoryFunction(model.order+model.order/2)
         except OverflowError:

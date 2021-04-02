@@ -25,6 +25,6 @@ subunits can be studied.
        license = "CeCILL",
        packages = ['nMoldyn'],
        scripts = ['xMoldyn', 'pMoldyn', 'dcd_to_nc', 'nc_to_dcd',
-                  'dlpoly_to_nc'],
+                  'dlpoly_to_nc', 'dlpoly3_to_nc'],
        )
 

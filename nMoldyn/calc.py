@@ -368,11 +368,13 @@ class KVectors:
                 center = 0.5*(lower+upper)
                 shell_volume = 4.*pi*center**2 * (upper-lower)
                 ncells = shell_volume/cell_volume
-                if number > 1.5*ncells:
-                    number = int(1.5*ncells)
+#                if number > 1.5*ncells:
+#                    number = int(1.5*ncells)
                 if ncells > 500:
+                    print 'RANDOM'; ncells
                     self._makeRandomKList(lower, upper, number)
                 else:
+                    print 'EXPLICIT', ncells
                     self._makeExplicitKList(lower, upper, number)
             else:
                 ki = map(round, self.inverse*initial)
@@ -392,6 +394,7 @@ class KVectors:
         if len(klist) <= number:
             self.klist = klist
         else:
+            print "HERRRRRRRRRRRRRRRRRRRRRE", len(klist)
             self.klist = []
             for i in range(number):
                 self.klist.append(klist[randint(0, number-1)])

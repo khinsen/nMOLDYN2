@@ -435,7 +435,7 @@ class Command:
         filename = saveText(filename=mktemp(), data=data)
         text = "The following command is about to be run in the background:"+\
                "\n\n"
-        cmd  = 'pMoldyn --' + self.switch + ' --input ' + filename + \
+        cmd  = sys.executable + ' pMoldyn.py --' + self.switch + ' --input ' + filename + \
                ' 1> '+ self.log_file + ' 2>&1 &'
         
         if askokcancel("Running...", text+cmd):
@@ -2323,7 +2323,11 @@ class xMOLDYN(Frame):
         info.initial_focus = info
         f0 = Frame(info,bd=2,relief='groove')
         f0.pack(side=TOP,padx=3,pady=3,fill=BOTH)
-        Label(f0,text=self.trajInfo).pack(side=TOP,fill=BOTH)
+        try:
+            info_string = self.trajInfo
+        except AttributeError:
+            info_string = 'No trajectory loaded'
+        Label(f0,text=info_string).pack(side=TOP,fill=BOTH)
         f1 = Frame(info,bd=2,relief='groove')
         f1.pack(side=TOP,fill=X,padx=3,pady=3)
         Button1=Button(f1,text='Close',

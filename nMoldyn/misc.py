@@ -799,6 +799,7 @@ def logfileInit(modName):
         owner = win32api.GetUserName()
     except ImportError:
         from pwd import getpwuid
+        from os import getuid
         owner = getpwuid(getuid())[0]
     t1 = asctime(localtime(time()))+'\n0\n'
     pid = os.getpid()
@@ -889,6 +890,7 @@ def getProgress():
         owner = win32api.GetUserName()
     except ImportError:
         from pwd import getpwuid
+        from os import getuid
         owner = getpwuid(getuid())[0]
     from tempfile import gettempdir
     list = listdir(gettempdir())
